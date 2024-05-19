@@ -23,6 +23,18 @@ app.post('/signup', (req, res) => {
         return res.json(data);
     });
 });
+app.post('/addEmployee', (req, res) => {
+    const { name, ph, email, age, salary, country, added_by } = req.body;
+    const sql = "INSERT INTO employee (name, ph, email, age, salary, country, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    db.query(sql, [name, ph, email, age, salary, country, added_by], (err, result) => {
+        if (err) {
+            console.error('Error inserting data into employee table:', err);
+            return res.status(500).json({ message: 'Error adding employee' });
+        }
+        res.status(200).json({ message: 'Employee added successfully', data: result });
+    });
+});
+
 
 app.post('/login', (req, res) => {
     const email = req.body.email;
