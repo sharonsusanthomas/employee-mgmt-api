@@ -23,6 +23,31 @@ app.post('/signup', (req, res) => {
         return res.json(data);
     });
 });
+app.put('/updateEmployee/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, ph, email, age, salary, country } = req.body;
+
+    const sql = "UPDATE employee SET name = ?, ph = ?, email = ?, age = ?, salary = ?, country = ? WHERE id = ?";
+    db.query(sql, [name, ph, email, age, salary, country, id], (err, result) => {
+        if (err) {
+            console.error('Error updating employee:', err);
+            return res.status(500).json({ message: 'Error updating employee' });
+        }
+        res.status(200).json({ message: 'Employee updated successfully', data: result });
+    });
+});
+
+
+app.get('/viewEmployee', (req, res) => {
+    const sql = 'SELECT * FROM employee';
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.error('Error fetching employees:', err);
+            return res.status(500).json({ message: 'Error fetching employees' });
+        }
+        res.status(200).json(result);
+    });
+});
 app.post('/addEmployee', (req, res) => {
     const { name, ph, email, age, salary, country, added_by } = req.body;
     const sql = "INSERT INTO employee (name, ph, email, age, salary, country, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)";
