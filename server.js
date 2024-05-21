@@ -12,18 +12,6 @@ const db = mysql.createConnection({
     password: "sharon@123",
     database: "sakila"
 });
-
-app.post('/signup', (req, res) => {
-    const sql = "INSERT INTO login (name, email, password) VALUES ?";
-    const values = [[req.body.name, req.body.email, req.body.password]];
-    db.query(sql, [values], (err, data) => {
-        if (err) {
-            return res.json("Error");
-        }
-        return res.json(data);
-    });
-});
-
 app.delete('/deleteEmployee/:id', (req, res) => {
     const { id } = req.params;
     const sql = 'DELETE FROM employee WHERE id = ?';
@@ -40,6 +28,16 @@ app.delete('/deleteEmployee/:id', (req, res) => {
     });
 });
 
+app.post('/signup', (req, res) => {
+    const sql = "INSERT INTO login (name, email, password) VALUES ?";
+    const values = [[req.body.name, req.body.email, req.body.password]];
+    db.query(sql, [values], (err, data) => {
+        if (err) {
+            return res.json("Error");
+        }
+        return res.json(data);
+    });
+});
 app.put('/updateEmployee/:id', (req, res) => {
     const { id } = req.params;
     const { name, ph, email, age, salary, country } = req.body;
