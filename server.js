@@ -23,6 +23,23 @@ app.post('/signup', (req, res) => {
         return res.json(data);
     });
 });
+
+app.delete('/deleteEmployee/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = 'DELETE FROM employee WHERE id = ?';
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error('Error deleting employee:', err);
+            return res.status(500).json({ message: 'Error deleting employee' });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Employee not found' });
+        }
+        res.status(200).json({ message: 'Employee deleted successfully', data: result });
+    });
+});
+
 app.put('/updateEmployee/:id', (req, res) => {
     const { id } = req.params;
     const { name, ph, email, age, salary, country } = req.body;
