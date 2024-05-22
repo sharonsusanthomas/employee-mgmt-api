@@ -126,6 +126,51 @@ app.delete('/deleteEmployee/:id', (req, res) => {
 
 // Other routes (e.g., login, signup, add employee) go here...
 
+// Signup route
+app.post('/signup', (req, res) => {
+    const { name, email, password } = req.body;
+    const sql = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
+    db.query(sql, [name, email, password], (err, result) => {
+        if (err) {
+            console.error('Error signing up:', err);
+            return res.status(500).json({ message: 'Error signing up' });
+        }
+        res.status(200).json({ message: 'Signup successful', data: result });
+    });
+});
+
+// Login route
+app.post('/login', (req, res) => {
+    const { email, password } = req.body;
+    const sql = "SELECT * FROM users WHERE email = ? AND password = ?";
+    db.query(sql, [email, password], (err, result) => {
+        if (err) {
+            console.error('Error logging in:', err);
+            return res.status(500).json({ message: 'Error logging in' });
+        }
+        if (result.length === 0) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        // Return user's name along with success message
+        res.status(200).json({ message: 'Login successful', userName: result[0].name });
+    });
+});
+
+// Add employee route
+app.post('/addEmployee', (req, res) => {
+    const { name, email, role } = req.body;
+    const addedBy = req.headers.userName; // Get logged-in user's name from request headers
+    const sql = "INSERT INTO employees (name, email, role, added_by) VALUES (?, ?, ?, ?)";
+    db.query(sql, [name, email, role, addedBy], (err, result) => {
+        if (err) {
+            console.error('Error adding employee:', err);
+            return res.status(500).json({ message: 'Error adding employee' });
+        }
+        res.status(200).json({ message: 'Employee added successfully', data: result });
+    });
+});
+
+
 app.listen(8081, () => {
     console.log("Server is running on http://localhost:8081");
 });
