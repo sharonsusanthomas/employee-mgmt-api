@@ -23,7 +23,7 @@ db.connect((err) => {
 
 // Fetch all employees
 app.get('/viewEmployee', (req, res) => {
-    const sql = 'SELECT * FROM employee';
+    const sql = 'SELECT * FROM employee WHERE status ="Active"';
     db.query(sql, (err, result) => {
         if (err) {
             console.error('Error fetching employees:', err);
@@ -59,34 +59,46 @@ app.post('/signup', (req, res) => {
     });
 });
 app.post('/login', (req, res) => {
-    const email = req.body.email;
+    const username = req.body.username;
     const password = req.body.password;
     
-    const checkEmailSql = "SELECT * FROM login WHERE email = ?";
-    db.query(checkEmailSql, [email], (err, data) => {
+    const checkUsernameSql = "SELECT * FROM employee WHERE username = ?";
+    db.query(checkUsernameSql, [username], (err, userData) => {
         if (err) {
             return res.json("Error");
         }
-        if (data.length === 0) {
+        if (userData.length === 0) {
             return res.json("no_user");
         }
-        const checkPasswordSql = "SELECT * FROM login WHERE email = ? AND password = ?";
-        db.query(checkPasswordSql, [email, password], (err, data) => {
-            if (err) {
-                return res.json("Error");
-            }
-            if (data.length > 0) {
-                return res.json("success");
-            } else {
-                return res.json("wrong_password");
-            }
-        });
+        const user = userData[0];
+        
+        if (user.status === 'inactive') {
+            return res.json("You are no longer allowed to access");
+        }
+
+        if (user.classification === 'admin') {
+            return res.json({ status: "success", isAdmin: true });
+        } else {
+            const checkPasswordSql = "SELECT * FROM employee WHERE username = ? AND password = ?";
+            db.query(checkPasswordSql, [username, password], (err, data) => {
+                if (err) {
+                    return res.json("Error");
+                }
+                if (data.length > 0) {
+                    return res.json({ status: "success", isAdmin: false });
+                } else {
+                    return res.json("wrong_password");
+                }
+            });
+        }
     });
 });
+
+
 app.post('/addEmployee', (req, res) => {
-    const { name, ph, email, age, salary, country, added_by } = req.body;
-    const sql = "INSERT INTO employee (name, ph, email, age, salary, country, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)";
-    db.query(sql, [name, ph, email, age, salary, country, added_by], (err, result) => {
+    const { name, phno, email, age, salary, country, addedby,username,password,classification } = req.body;
+    const sql = "INSERT INTO employee (name, phno, email, age, salary, country, addedby,username,password,classification) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    db.query(sql, [name, phno, email, age, salary, country, addedby, username,password,classification], (err, result) => {
         if (err) {
             console.error('Error inserting data into employee table:', err);
             return res.status(500).json({ message: 'Error adding employee' });
@@ -97,9 +109,9 @@ app.post('/addEmployee', (req, res) => {
 // Update employee details by ID
 app.put('/updateEmployee/:id', (req, res) => {
     const { id } = req.params;
-    const { name, ph, email, age, salary, country } = req.body;
-    const sql = "UPDATE employee SET name = ?, ph = ?, email = ?, age = ?, salary = ?, country = ? WHERE id = ?";
-    db.query(sql, [name, ph, email, age, salary, country, id], (err, result) => {
+    const { name, phno, email, age, salary, country,classification } = req.body;
+    const sql = "UPDATE employee SET name = ?, phno  = ?, email = ?, age = ?, salary = ?, country = ?,classification = ? WHERE id = ?";
+    db.query(sql, [name, phno , email, age, salary, country,classification, id], (err, result) => {
         if (err) {
             console.error('Error updating employee:', err);
             return res.status(500).json({ message: 'Error updating employee' });
@@ -111,7 +123,7 @@ app.put('/updateEmployee/:id', (req, res) => {
 // Delete employee by ID
 app.delete('/deleteEmployee/:id', (req, res) => {
     const { id } = req.params;
-    const sql = 'DELETE FROM employee WHERE id = ?';
+    const sql = 'UPDATE employee SET status = "inactive" Where id = ?';
     db.query(sql, [id], (err, result) => {
         if (err) {
             console.error('Error deleting employee:', err);
@@ -139,34 +151,74 @@ app.post('/signup', (req, res) => {
     });
 });
 
-// Login route
-app.post('/login', (req, res) => {
-    const { email, password } = req.body;
-    const sql = "SELECT * FROM users WHERE email = ? AND password = ?";
-    db.query(sql, [email, password], (err, result) => {
+
+app.get('/activeEmployees', (req, res) => {
+    const sql = 'SELECT COUNT(*) AS count FROM employee WHERE status = "Active"';
+    db.query(sql, (err, result) => {
         if (err) {
-            console.error('Error logging in:', err);
-            return res.status(500).json({ message: 'Error logging in' });
+            console.error('Error fetching active employees:', err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
-        if (result.length === 0) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-        // Return user's name along with success message
-        res.status(200).json({ message: 'Login successful', userName: result[0].name });
+        res.json(result[0].count); // Send the count of active employees
     });
 });
 
-// Add employee route
-app.post('/addEmployee', (req, res) => {
-    const { name, email, role } = req.body;
-    const addedBy = req.headers.userName; // Get logged-in user's name from request headers
-    const sql = "INSERT INTO employees (name, email, role, added_by) VALUES (?, ?, ?, ?)";
-    db.query(sql, [name, email, role, addedBy], (err, result) => {
+// Route to get the number of inactive employees
+app.get('/inactiveEmployees', (req, res) => {
+    const sql = 'SELECT COUNT(*) AS count FROM employee WHERE status = "Inactive"';
+    db.query(sql, (err, result) => {
         if (err) {
-            console.error('Error adding employee:', err);
-            return res.status(500).json({ message: 'Error adding employee' });
+            console.error('Error fetching inactive employees:', err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
-        res.status(200).json({ message: 'Employee added successfully', data: result });
+        res.json(result[0].count); // Send the count of inactive employees
+    });
+});
+app.get('/profile/:username', (req, res) => {
+    const { username } = req.params;
+    const sql = 'SELECT * FROM users WHERE username = ?';
+    db.query(sql, [username], (err, result) => {
+        if (err) {
+            console.error('Error fetching user data:', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+        if (result.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json(result[0]); // Send the user data as JSON response
+    });
+});
+
+
+// Route to get the number of logged-in users
+app.get('/loggedInUsers', (req, res) => {
+    // Implement logic to get the count of logged-in users from your authentication system
+    // This could involve querying a session store or database
+    // For demonstration purposes, we'll assume a static value of 10 for now
+    const loggedInUsersCount = 10;
+    res.json(loggedInUsersCount); // Send the count of logged-in users
+});
+// Example Node.js/Express endpoint
+app.get('/employee/events', (req, res) => {
+    const employeeId = req.user.id; // assuming you have user info in req.user
+
+    const events = [
+        // Mock data - replace with actual database queries
+        { id: 1, name: 'Event 1', date: '2024-06-01', documentsMissing: false },
+        { id: 2, name: 'Event 2', date: '2024-06-15', documentsMissing: true },
+        // Add more events as needed
+    ];
+
+    const collaborations = [
+        // Mock data - replace with actual database queries
+        { id: 1, eventName: 'Event 1', collaboratorName: 'John Doe' },
+        // Add more collaborations as needed
+    ];
+
+    res.json({
+        events,
+        totalEvents: events.length,
+        collaborations
     });
 });
 
